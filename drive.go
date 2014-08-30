@@ -27,6 +27,7 @@ type Options struct {
 		Query        string `goptions:"-q, --query, mutexgroup='query', description='Query (see https://developers.google.com/drive/search-parameters)'"`
 		SharedStatus bool   `goptions:"-s, --shared, description='Show shared status (Note: this will generate 1 http req per file)'"`
 		NoHeader     bool   `goptions:"-n, --noheader, description='Do not show the header'"`
+		FullTitle    bool   `goptions:"-f, --fulltitle, description='Show full title'"`
 	} `goptions:"list"`
 
 	Info struct {
@@ -93,7 +94,7 @@ func main() {
 	switch opts.Verbs {
 	case "list":
 		args := opts.List
-		err = cli.List(drive, args.Query, args.TitleFilter, args.MaxResults, args.SharedStatus, args.NoHeader)
+		err = cli.List(drive, args.Query, args.TitleFilter, args.MaxResults, args.SharedStatus, args.NoHeader, args.FullTitle)
 
 	case "info":
 		err = cli.Info(drive, opts.Info.FileId)

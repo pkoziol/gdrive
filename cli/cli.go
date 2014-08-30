@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStatus bool, noHeader bool) error {
+func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStatus bool, noHeader bool, fullTitle bool) error {
 	caller := d.Files.List()
 
 	if maxResults > 0 {
@@ -46,9 +46,15 @@ func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStat
 			continue
 		}
 
+		title := f.Title
+
+		if !fullTitle {
+			title = util.TruncateString(title, 40)
+		}
+
 		items = append(items, map[string]string{
 			"Id":      f.Id,
-			"Title":   util.TruncateString(f.Title, 40),
+			"Title":   title,
 			"Size":    util.FileSizeFormat(f.FileSize),
 			"Created": util.ISODateToLocal(f.CreatedDate),
 		})
