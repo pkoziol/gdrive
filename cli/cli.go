@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStatus bool, noHeader bool, fullTitle bool) error {
+func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStatus bool, noHeader bool, fullTitle bool, md5 bool) error {
 	caller := d.Files.List()
 
 	if maxResults > 0 {
@@ -57,6 +57,7 @@ func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStat
 			"Title":   title,
 			"Size":    util.FileSizeFormat(f.FileSize),
 			"Created": util.ISODateToLocal(f.CreatedDate),
+			"Md5sum":  f.Md5Checksum,
 		})
 	}
 
@@ -65,6 +66,10 @@ func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStat
 	if sharedStatus {
 		addSharedStatus(d, items)
 		columnOrder = append(columnOrder, "Shared")
+	}
+
+	if md5 {
+		columnOrder = append(columnOrder, "Md5sum")
 	}
 
 	util.PrintColumns(items, columnOrder, 3, noHeader)

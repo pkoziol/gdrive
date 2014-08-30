@@ -28,6 +28,7 @@ type Options struct {
 		SharedStatus bool   `goptions:"-s, --shared, description='Show shared status (Note: this will generate 1 http req per file)'"`
 		NoHeader     bool   `goptions:"-n, --noheader, description='Do not show the header'"`
 		FullTitle    bool   `goptions:"-f, --fulltitle, description='Show full title'"`
+		Md5          bool   `goptions:"--md5, description='Show MD5 sum'"`
 	} `goptions:"list"`
 
 	Info struct {
@@ -94,7 +95,7 @@ func main() {
 	switch opts.Verbs {
 	case "list":
 		args := opts.List
-		err = cli.List(drive, args.Query, args.TitleFilter, args.MaxResults, args.SharedStatus, args.NoHeader, args.FullTitle)
+		err = cli.List(drive, args.Query, args.TitleFilter, args.MaxResults, args.SharedStatus, args.NoHeader, args.FullTitle, args.Md5)
 
 	case "info":
 		err = cli.Info(drive, opts.Info.FileId)
