@@ -13,52 +13,76 @@ import (
 )
 
 func List(d *gdrive.Drive, query, titleFilter string, maxResults int, sharedStatus bool, noHeader bool, fullTitle bool, md5 bool) error {
-	caller := d.Files.List()
-
-	if maxResults > 0 {
-		caller.MaxResults(int64(maxResults))
-	}
-
-	if titleFilter != "" {
-		q := fmt.Sprintf("title contains '%s'", titleFilter)
-		caller.Q(q)
-	}
-
-	if query != "" {
-		caller.Q(query)
-	}
-
-	list, err := caller.Do()
-	if err != nil {
-		return err
-	}
-
 	items := make([]map[string]string, 0, 0)
+	pageToken := ""
 
-	for _, f := range list.Items {
-		// Skip files that dont have a download url (they are not stored on google drive)
-		if f.DownloadUrl == "" {
-			if f.MimeType != "application/vnd.google-apps.folder" {
+ListOuterLoop:
+	for {
+		caller := d.Files.List()
+
+		if maxResults > 0 {
+			caller.MaxResults(int64(maxResults))
+		}
+
+		if pageToken != "" {
+			caller.PageToken(pageToken)
+		}
+
+		if titleFilter != "" {
+			q := fmt.Sprintf("title contains '%s'", titleFilter)
+			caller.Q(q)
+		}
+
+		if query != "" {
+			caller.Q(query)
+		}
+
+		list, err := caller.Do()
+		if err != nil {
+			return err
+		}
+
+		for _, f := range list.Items {
+			// Skip files that dont have a download url (they are not stored on google drive)
+			if f.DownloadUrl == "" {
+				if f.MimeType != "application/vnd.google-apps.folder" {
+					continue
+				}
+			}
+			if f.Labels.Trashed {
 				continue
 			}
-		}
-		if f.Labels.Trashed {
-			continue
+
+			title := f.Title
+
+			if !fullTitle {
+				title = util.TruncateString(title, 40)
+			}
+
+			items = append(items, map[string]string{
+				"Id":      f.Id,
+				"Title":   title,
+				"Size":    util.FileSizeFormat(f.FileSize),
+				"Created": util.ISODateToLocal(f.CreatedDate),
+				"Md5sum":  f.Md5Checksum,
+			})
+
+			if maxResults > 0 && len(items) == maxResults {
+				break ListOuterLoop
+			}
 		}
 
-		title := f.Title
+		// Download only first page if maxResutls was not set
+		if maxResults <= 0 {
+			break
+		} else {
+			pageToken = list.NextPageToken
 
-		if !fullTitle {
-			title = util.TruncateString(title, 40)
+			// Break if this is last page
+			if pageToken == "" {
+				break
+			}
 		}
-
-		items = append(items, map[string]string{
-			"Id":      f.Id,
-			"Title":   title,
-			"Size":    util.FileSizeFormat(f.FileSize),
-			"Created": util.ISODateToLocal(f.CreatedDate),
-			"Md5sum":  f.Md5Checksum,
-		})
 	}
 
 	columnOrder := []string{"Id", "Title", "Size", "Created"}
@@ -196,7 +220,7 @@ func Upload(d *gdrive.Drive, input io.ReadCloser, title string, parentId string,
 	if convert {
 		fmt.Printf("Converting to Google Docs format enabled\n")
 	}
-		
+
 	info, err := d.Files.Insert(f).Convert(convert).Media(input).Do()
 	if err != nil {
 		return fmt.Errorf("An error occurred uploading the document: %v\n", err)
